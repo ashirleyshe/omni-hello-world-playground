@@ -16,7 +16,7 @@ contract GlobalGreeter is XApp {
     /**
      * @notice Gas limit used for a cross-chain greet call at destination
      */
-    uint64 public constant DEST_TX_GAS_LIMIT = 120_000;
+    uint64 public constant DEST_TX_GAS_LIMIT = 200_000;
 
     /**
      * @notice The latest greeting recorded by the contract
@@ -31,7 +31,7 @@ contract GlobalGreeter is XApp {
      * @dev Initializes a new GlobalGreeter contract with the specified portal address
      * @param portal Address of the portal or relay used for cross-chain communication
      */
-    constructor(address portal) XApp(portal, ConfLevel.Latest) {}
+    constructor(address portal) XApp(portal, ConfLevel.Finalized) {}
 
     /**
      * @notice Records a greeting from any chain
@@ -40,21 +40,25 @@ contract GlobalGreeter is XApp {
      *      It updates the lastGreet variable with information about the received greeting.
      */
     function greet(string calldata _greeting) external payable xrecv {
-
         // Create a Greeting struct to store information about the received greeting
-        Greeting memory greeting =
-            Greeting(xmsg.sourceChainId, block.timestamp, xmsg.sender, _greeting);
+        Greeting memory greeting = Greeting(xmsg.sourceChainId, block.timestamp, xmsg.sender, _greeting);
 
         // Update the lastGreet variable with the information about the received greeting
         lastGreet = greeting;
 
         // Makes the cross-chain call
-        bytes memory data = abi.encodeWithSelector(RollupGreeter.receiveGreet.selector, _greeting);
-        xcall(destChainID, rollupChainGreeter, data, DEST_TX_GAS_LIMIT);
+        bytes memory data = abi.encodeWithSelector(RollupGreeter.receiveGreet.selector);
+        xcall(xmsg.sourceChainId, xmsg.sender, data, DEST_TX_GAS_LIMIT);
     }
 
     function setDest(uint64 _destChainID, address _rollupChainGreeter) external {
         destChainID = _destChainID;
         rollupChainGreeter = _rollupChainGreeter;
     }
+
+    function transferFund() external {
+        payable(msg.sender).transfer(address(this).balance);
+    }
+
+    receive() external payable {}
 }
