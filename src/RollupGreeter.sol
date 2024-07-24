@@ -12,6 +12,9 @@ import {GlobalGreeter} from "./GlobalGreeter.sol";
  * @dev This contract allows users to transmit greetings to a greeter contract deployed on the global chain via cross-chain communication.
  */
 contract RollupGreeter is XApp {
+
+    event GreetReceived(string greeting);
+
     /**
      * @notice Gas limit used for a cross-chain greet call at destination
      */
@@ -22,6 +25,8 @@ contract RollupGreeter is XApp {
      * @dev State variable to store the address of the greeter contract on the global chain
      */
     address public omniChainGreeter;
+
+    string public lastGreet;
 
     /**
      * @dev Initializes a new RollupGreeter contract with necessary addresses and identifiers
@@ -46,5 +51,10 @@ contract RollupGreeter is XApp {
 
         // Ensure that the caller provides sufficient value to cover the fee
         require(msg.value >= fee, "RollupGreeter: little fee");
+    }
+
+    function receiveGreet(string calldata greeting) external xrecv {
+        lastGreet = greeting;
+        emit GreetReceived(greeting);
     }
 }
